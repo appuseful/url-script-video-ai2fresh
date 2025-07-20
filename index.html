@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <title>🔗 URL ➜ Skrypt ➜ 🎥 Wideo AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    header {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 20px;
+      width: 100%;
+      text-align: center;
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+    main {
+      width: 90%;
+      max-width: 800px;
+      margin: 40px auto;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 12px 25px;
+      background-color: #00ffc3;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #00cfa3;
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      margin-top: 20px;
+      padding: 12px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      resize: vertical;
+      background-color: #ffffff;
+      color: #000;
+    }
+
+    video {
+      margin-top: 30px;
+      width: 100%;
+      max-width: 100%;
+      border: 4px solid #00ffc3;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>🔗 Podaj URL ➜ wygeneruj skrypt ➜ zamień na wideo</header>
+
+  <main>
+    <input type="text" id="urlInput" placeholder="Wklej link do artykułu..." />
+    <button onclick="processUrl()">📄 Pobierz treść</button>
+
+    <div id="scriptSection" style="display:none;">
+      <h2>📜 Wygenerowany skrypt:</h2>
+      <textarea id="scriptOutput" readonly></textarea>
+      <br />
+      <button onclick="generateVideo()">🎬 Generuj Wideo</button>
+    </div>
+
+    <div id="videoSection"></div>
+  </main>
+
+  <script>
+    async function processUrl() {
+      const url = document.getElementById("urlInput").value;
+      const scriptBox = document.getElementById("scriptOutput");
+      const section = document.getElementById("scriptSection");
+
+      if (!url) {
+        alert("❗ Podaj poprawny URL.");
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/extract-script", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url })
+        });
+
+        const data = await res.json();
+        if (data.text) {
+          scriptBox.value = data.text;
+          section.style.display = "block";
+        } else {
+          alert("⚠️ Nie udało się pobrać tekstu.");
+        }
+      } catch (err) {
+        alert("⚠️ Błąd sieci: " + err.message);
+      }
+    }
+
+    async function generateVideo() {
+      const text = document.getElementById("scriptOutput").value;
+      const videoDiv = document.getElementById("videoSection");
+      videoDiv.innerHTML = "<p>⏳ Generowanie wideo...</p>";
+
+      try {
+        const res = await fetch("/api/script-to-video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text })
+        });
+
+        const data = await res.json();
+
+        if (data.videoUrl) {
+          videoDiv.innerHTML = \`
+            <p>🎥 Gotowe wideo:</p>
+            <video controls>
+              <source src="\${data.videoUrl}" type="video/mp4">
+              Twoja przeglądarka nie obsługuje tagu <code>video</code>.
+            </video>
+          \`;
+        } else {
+          videoDiv.innerHTML = "<p>❌ Błąd przy generowaniu wideo.</p>";
+        }
+      } catch (err) {
+        videoDiv.innerHTML = "<p>⚠️ Błąd: " + err.message + "</p>";
+      }
+    }
+  </script>
+</body>
+</html>
